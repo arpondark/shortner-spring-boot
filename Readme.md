@@ -30,9 +30,12 @@ src/
 │   │   ├── config/
 │   │   │   └── WebSecurityConfig.java        # Security configuration
 │   │   ├── controller/
-│   │   │   └── AuthController.java           # Authentication endpoints
+│   │   │   ├── AuthController.java           # Authentication endpoints
+│   │   │   └── UrlMappingController.java     # URL shortening endpoints
 │   │   ├── dtos/
-│   │   │   └── RegisterRequest.java          # Data transfer objects
+│   │   │   ├── LoginRequest.java             # Login request DTO
+│   │   │   ├── RegisterRequest.java          # Registration request DTO
+│   │   │   └── UrlMappingDTO.java            # URL mapping response DTO
 │   │   ├── jwt/
 │   │   │   ├── JwtAuthenticationResponse.java
 │   │   │   ├── jwtAuthFilter.java            # JWT filter
@@ -42,11 +45,13 @@ src/
 │   │   │   ├── UrlMapping.java               # URL mapping entity
 │   │   │   └── User.java                     # User entity
 │   │   ├── repo/
-│   │   │   └── UserRepository.java           # User repository
+│   │   │   ├── UserRepository.java           # User repository
+│   │   │   └── UrlMappingRepo.java           # URL mapping repository
 │   │   └── Service/
 │   │       ├── UserDetailsImpl.java
 │   │       ├── UserDetailsServiceImpl.java
-│   │       └── UserService.java              # User service layer
+│   │       ├── UserService.java              # User service layer
+│   │       └── UrlMappingService.java        # URL mapping service
 │   └── resources/
 │       └── application.properties            # Configuration file
 ```
@@ -142,6 +147,35 @@ http://localhost:8080
 }
 ```
 
+### URL Shortening Endpoints
+
+#### 1. Shorten URL
+- **Endpoint:** `POST /api/url/shorten`
+- **Description:** Create a shortened URL for a given original URL
+- **Headers:** 
+  - Content-Type: `application/json`
+  - Authorization: `Bearer <jwt-token>`
+- **Authentication:** Required (JWT Token)
+
+**Request Body:**
+```json
+{
+    "originalUrl": "https://www.example.com/very/long/url/that/needs/to/be/shortened"
+}
+```
+
+**Response:**
+```json
+{
+    "id": 1,
+    "orginalurl": "https://www.example.com/very/long/url/that/needs/to/be/shortened",
+    "shorturl": "AbC12Xy8",
+    "clickCount": 0,
+    "createdAt": "2025-08-04T10:30:00",
+    "username": "john_doe"
+}
+```
+
 ## Testing with Postman
 
 ### 1. Import Collection
@@ -197,7 +231,53 @@ Create a new Postman collection called "URL Shortener API"
   }
   ```
 
-### 4. Test Cases
+### 4. URL Shortening Test
+
+#### Step 1: Get JWT Token
+Before testing URL shortening, you must first obtain a JWT token by logging in (follow step 3 above).
+
+#### Step 2: Setup Authorization in Postman
+1. **Copy the JWT token** from the login response
+2. **In Postman**, go to the **Authorization** tab of your shortening request
+3. **Select Type:** `Bearer Token`
+4. **Paste the token** in the Token field
+
+#### Step 3: Create Short URL Request
+**Request Details:**
+- **Method:** POST
+- **URL:** `http://localhost:8080/api/url/shorten`
+- **Headers:** 
+  ```
+  Content-Type: application/json
+  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  ```
+- **Body (raw JSON):**
+  ```json
+  {
+      "originalUrl": "https://www.google.com"
+  }
+  ```
+
+**Expected Response:**
+- **Status:** 200 OK
+- **Body:** 
+  ```json
+  {
+      "id": 1,
+      "orginalurl": "https://www.google.com",
+      "shorturl": "AbC12Xy8",
+      "clickCount": 0,
+      "createdAt": "2025-08-04T10:30:00",
+      "username": "testuser"
+  }
+  ```
+
+#### Step 4: Alternative - Using Headers Tab
+Instead of Authorization tab, you can manually add the header:
+- **Key:** `Authorization`
+- **Value:** `Bearer your_jwt_token_here`
+
+### 5. Test Cases
 
 #### Valid Registration
 ```json
@@ -235,7 +315,27 @@ Create a new Postman collection called "URL Shortener API"
 }
 ```
 
-### 5. Error Testing
+#### Valid URL Shortening
+```json
+{
+    "originalUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+}
+```
+
+#### Different URL Examples
+```json
+{
+    "originalUrl": "https://github.com/arpondark/shortner-spring-boot"
+}
+```
+
+```json
+{
+    "originalUrl": "https://docs.spring.io/spring-boot/docs/current/reference/html/"
+}
+```
+
+### 6. Error Testing
 
 #### Registration Errors
 
@@ -282,6 +382,39 @@ Create a new Postman collection called "URL Shortener API"
 }
 ```
 
+#### URL Shortening Errors
+
+##### Missing JWT Token
+Try making the request without Authorization header:
+- **Expected:** 401 Unauthorized
+
+##### Invalid/Expired JWT Token
+```
+Authorization: Bearer invalid_token_here
+```
+- **Expected:** 401 Unauthorized
+
+##### Missing Original URL
+```json
+{
+    "someOtherField": "value"
+}
+```
+
+##### Invalid URL Format
+```json
+{
+    "originalUrl": "not-a-valid-url"
+}
+```
+
+##### Empty Original URL
+```json
+{
+    "originalUrl": ""
+}
+```
+
 ## Using JWT Token for Protected Endpoints
 
 After successful login, save the JWT token from the response and include it in subsequent requests to protected endpoints:
@@ -292,11 +425,68 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 Content-Type: application/json
 ```
 
-**Example Protected Request:**
+### Postman JWT Token Setup Guide
+
+#### Method 1: Using Authorization Tab (Recommended)
+1. **Login first** using the `/api/auth/public/login` endpoint
+2. **Copy the token** from the response (without "Bearer" prefix)
+3. **Open your URL shortening request** in Postman
+4. **Go to Authorization tab**
+5. **Select Type:** Bearer Token
+6. **Paste token** in the Token field
+7. **Send the request**
+
+#### Method 2: Using Headers Tab
+1. **Go to Headers tab** in your request
+2. **Add a new header:**
+   - **Key:** `Authorization`
+   - **Value:** `Bearer your_jwt_token_here`
+3. **Send the request**
+
+### Example cURL Commands
+
+**Get JWT Token:**
 ```bash
-curl -X GET http://localhost:8080/api/urls/user-urls \
+curl -X POST http://localhost:8080/api/auth/public/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "testuser", "password": "test123"}'
+```
+
+**Shorten URL:**
+```bash
+curl -X POST http://localhost:8080/api/url/shorten \
   -H "Authorization: Bearer your_jwt_token_here" \
-  -H "Content-Type: application/json"
+  -H "Content-Type: application/json" \
+  -d '{"originalUrl": "https://www.google.com"}'
+```
+
+### Complete Workflow Example
+
+1. **Register a user:**
+```bash
+curl -X POST http://localhost:8080/api/auth/public/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john",
+    "email": "john@example.com", 
+    "password": "password123",
+    "role": ["USER"]
+  }'
+```
+
+2. **Login to get JWT token:**
+```bash
+curl -X POST http://localhost:8080/api/auth/public/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "john", "password": "password123"}'
+```
+
+3. **Use token to shorten URL:**
+```bash
+curl -X POST http://localhost:8080/api/url/shorten \
+  -H "Authorization: Bearer <token-from-step-2>" \
+  -H "Content-Type: application/json" \
+  -d '{"originalUrl": "https://www.example.com/very/long/url"}'
 ```
 
 ## Database Schema
@@ -384,8 +574,10 @@ Authorization: Bearer <your-jwt-token>
 
 ## Future Enhancements
 
-- [ ] URL shortening endpoints
+- [x] URL shortening endpoints ✅ (Completed)
 - [x] User login/authentication ✅ (Completed)
+- [ ] URL redirect functionality (GET /{shortUrl})
+- [ ] Get user's URLs endpoint
 - [ ] URL analytics dashboard
 - [ ] Custom short URL aliases
 - [ ] URL expiration functionality
