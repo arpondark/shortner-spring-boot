@@ -1,7 +1,9 @@
 package com.arpon007.shortner.controller;
 
 import com.arpon007.shortner.Service.UserService;
+import com.arpon007.shortner.dtos.LoginRequest;
 import com.arpon007.shortner.dtos.RegisterRequest;
+import com.arpon007.shortner.jwt.JwtAuthenticationResponse;
 import com.arpon007.shortner.models.User;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
     private UserService userService;
 
-
     @PostMapping("/public/register")
     public ResponseEntity<?> registerUser(@RequestBody RegisterRequest registerRequest) {
         User user = new User();
@@ -27,6 +28,11 @@ public class AuthController {
         user.setRole("ROLE_USER");
         userService.registerUser(user);
         return ResponseEntity.ok("User registered successfully");
+    }
 
+    @PostMapping("/public/login")
+    public ResponseEntity<JwtAuthenticationResponse> loginUser(@RequestBody LoginRequest loginRequest) {
+        JwtAuthenticationResponse response = userService.authenticateUser(loginRequest);
+        return ResponseEntity.ok(response);
     }
 }

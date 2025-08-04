@@ -120,6 +120,28 @@ http://localhost:8080
 "User registered successfully"
 ```
 
+#### 2. Login User
+- **Endpoint:** `POST /api/auth/public/login`
+- **Description:** Authenticate user and receive JWT token
+- **Headers:** 
+  - Content-Type: `application/json`
+
+**Request Body:**
+```json
+{
+    "username": "john_doe",
+    "password": "password123"
+}
+```
+
+**Response:**
+```json
+{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "tokenType": "Bearer"
+}
+```
+
 ## Testing with Postman
 
 ### 1. Import Collection
@@ -148,7 +170,34 @@ Create a new Postman collection called "URL Shortener API"
 - **Status:** 200 OK
 - **Body:** `"User registered successfully"`
 
-### 3. Test Cases
+### 3. User Login Test
+
+**Request Details:**
+- **Method:** POST
+- **URL:** `http://localhost:8080/api/auth/public/login`
+- **Headers:** 
+  ```
+  Content-Type: application/json
+  ```
+- **Body (raw JSON):**
+  ```json
+  {
+      "username": "testuser",
+      "password": "test123"
+  }
+  ```
+
+**Expected Response:**
+- **Status:** 200 OK
+- **Body:** 
+  ```json
+  {
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImlhdCI6MTYzOTU3NjAwMCwiZXhwIjoxNjM5NTc5NjAwfQ.example_jwt_token_signature",
+      "tokenType": "Bearer"
+  }
+  ```
+
+### 4. Test Cases
 
 #### Valid Registration
 ```json
@@ -170,9 +219,27 @@ Create a new Postman collection called "URL Shortener API"
 }
 ```
 
-### 4. Error Testing
+#### Valid Login
+```json
+{
+    "username": "alice",
+    "password": "securePass123"
+}
+```
 
-#### Invalid Email Format
+#### Login with Different User
+```json
+{
+    "username": "admin",
+    "password": "adminPass123"
+}
+```
+
+### 5. Error Testing
+
+#### Registration Errors
+
+##### Invalid Email Format
 ```json
 {
     "username": "testuser",
@@ -182,12 +249,54 @@ Create a new Postman collection called "URL Shortener API"
 }
 ```
 
-#### Missing Required Fields
+##### Missing Required Fields
 ```json
 {
     "username": "testuser",
     "email": "test@example.com"
 }
+```
+
+#### Login Errors
+
+##### Invalid Credentials
+```json
+{
+    "username": "nonexistent",
+    "password": "wrongpassword"
+}
+```
+
+##### Missing Password
+```json
+{
+    "username": "testuser"
+}
+```
+
+##### Empty Credentials
+```json
+{
+    "username": "",
+    "password": ""
+}
+```
+
+## Using JWT Token for Protected Endpoints
+
+After successful login, save the JWT token from the response and include it in subsequent requests to protected endpoints:
+
+**Headers for Protected Endpoints:**
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+```
+
+**Example Protected Request:**
+```bash
+curl -X GET http://localhost:8080/api/urls/user-urls \
+  -H "Authorization: Bearer your_jwt_token_here" \
+  -H "Content-Type: application/json"
 ```
 
 ## Database Schema
@@ -276,7 +385,7 @@ Authorization: Bearer <your-jwt-token>
 ## Future Enhancements
 
 - [ ] URL shortening endpoints
-- [ ] User login/authentication
+- [x] User login/authentication ✅ (Completed)
 - [ ] URL analytics dashboard
 - [ ] Custom short URL aliases
 - [ ] URL expiration functionality
