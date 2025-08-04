@@ -16,7 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-
+@Component
 public class jwtAuthFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsService userDetailsService;
@@ -40,7 +40,11 @@ public class jwtAuthFilter extends OncePerRequestFilter {
 
             }
         } catch (Exception e) {
+            // Log the error properly in production
             e.printStackTrace();
         }
+
+        // Continue the filter chain - this is critical!
+        filterChain.doFilter(request, response);
     }
 }
