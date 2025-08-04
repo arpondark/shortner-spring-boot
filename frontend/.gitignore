@@ -1,0 +1,14 @@
+.next
+node_modules
+*.code-workspace
+.idea
+# Ignore Next.js build output
+.next/
+# Ignore Node.js modules
+node_modules/
+# Ignore workspace files
+*.code-workspace
+# Ignore IDE specific files
+.idea/
+# Ignore Next.js build output
+.next/
